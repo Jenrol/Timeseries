@@ -1,0 +1,343 @@
+---
+title: "Untitled"
+author: "Abosede"
+date: "27/12/2020"
+output: html_document
+---
+#introduction
+The code below are for timeseries analysis.A time series is a succession of numerical data points in equally spaced time intervals.The variable used are Variables used for analysis are Gender wage gap at median(The gender wage gap is defined as the difference between median earnings of men and women relative to median earnings of men),female employment rate (aged 16 to 64, seasonally adjusted) and GDP (Chained volume measures: Seasonally adjusted £m.It is a yearly data with 50 observations starting from 1970-2019.The analysis are done to check the relationship between the three variables.
+# Analysis.
+The properties of the data is used using the different tools available on R for timeseries analysis.I will be  checking for stationarity, causality, seasonality or structural break.
+First download packages to prepare for the analysis
+```{r}
+install.packages("tseries")
+install.packages("urca")
+install.packages("vars")
+install.packages("forecast")
+install.packages("dplyr")
+installed.packages("strucchange")
+installed.packages("tsDyn")
+library(strucchange)
+library(tseries)
+library(vars)
+library("urca")
+library(forecast)
+library(dplyr)
+library(tsDyn)
+```
+# Sourcing the data and data description
+In order to perform the  analysis, I will first source the data through the adequate working directory, clean the workspace, and import the data.For quantitative description head and summary function was used to have a look at the data at first sight.
+
+```{r}
+getwd()
+setwd("C:/users/admin/onedrive/desktop")
+mydata<- read.csv("DATA_TIMESERIES1.csv")
+head(mydata)
+summary(mydata)
+```
+The result above are the initial description ,head function shows  4 variable with 6 observations.GDP and employment is increasing with time while Gender gap is decreasing.GDP as a mean of 1,392,243,Genderpay gap as a mean of 29.16 and mean of 62.02 for female employment rate.
+#plots
+Though the descriptive statistics outlined above provide a first preview of the data, it may be helpful to observe the evolution of the data visually.The plots show that GDP and Female employment rate increases over years while the Gender pay gap is decreasing. Also the plots show the data is non stationary.
+
+```{r}
+ts.plot(mydata$GDP)
+ts.plot(mydata$Gap)
+ts.plot(mydata$emp)
+```
+#Autocorrelation function
+Below I plot the correlogram of the autocorrelation function of the datat.ACF and PACF was used to check the autocorrelation coefficient of each variable. This  shows the correlation of the variable with itself at different time lags also to have insight on whether the data is stationary or not. As seen in the figure below, the correlation coefficients of ACF for GDP upto lag of 11 goes beyond the blue dotted line. Same for the gender pay gap and female employment rate.
+
+
+```{r}
+acf(mydata$GDP)
+pacf(mydata$GDP)
+```
+
+```{r}
+acf(mydata$Gap)
+pacf(mydata$Gap)
+```
+
+```{r}
+acf(mydata$emp)
+pacf(mydata$emp)
+```
+
+#Lag selection for dickey fuller test
+Optimum lag has to be selected in other to effectively check for unit root using Dicker fuller test.
+General to specific method was used to get the optimum lag to check for the presence of unit root. linear regression was used to predict the significance of the lag. Maximum of 12 lags was used.
+First lag of each variable was created then there  difference. 12 other variables was created for each varable(12 lag differenced variable).The regression was done by regressing the difference variable on lag of itself and 12 lag difference.
+For GDP lag 1 was significant at 0.01 level, lag of 5 for gap at 0.01 level of significant and lag of 12 for female employment rate at 0.01 level of significant.
+
+```{r}
+mydata$GDP_l<-lag(mydata$GDP,1)
+GDP_d<-diff(mydata$GDP)
+GDP_d<-c(rep(NA,1),GDP_d)
+mydata["GDP_d"]<-GDP_d
+```
+
+```{r}
+mydata$GDP_d1<-lag(mydata$GDP_d,1)
+mydata$GDP_d2<-lag(mydata$GDP_d,2)
+mydata$GDP_d3<-lag(mydata$GDP_d,3)
+mydata$GDP_d4<-lag(mydata$GDP_d,4)
+mydata$GDP_d5<-lag(mydata$GDP_d,5)
+mydata$GDP_d6<-lag(mydata$GDP_d,6)
+mydata$GDP_d7<-lag(mydata$GDP_d,7)
+mydata$GDP_d8<-lag(mydata$GDP_d,8)
+mydata$GDP_d9<-lag(mydata$GDP_d,9)
+mydata$GDP_d10<-lag(mydata$GDP_d,10)
+mydata$GDP_d11<-lag(mydata$GDP_d,11)
+mydata$GDP_d12<-lag(mydata$GDP_d,12)
+
+```
+
+```{r}
+ols1<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7+GDP_d8+GDP_d9+GDP_d10+GDP_d11+GDP_d12,data=mydata)
+summary(ols1)
+ols2<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7+GDP_d8+GDP_d9+GDP_d10+GDP_d11,data=mydata)
+summary(ols2)
+ols3<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7+GDP_d8+GDP_d9+GDP_d10,data=mydata)
+summary(ols3)
+ols4<-lm(lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7+GDP_d8+GDP_d9,data=mydata))
+summary(ols4)
+ols5<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7+GDP_d8,data=mydata)
+summary(ols5)
+ols6<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6+GDP_d7,data=mydata)
+summary(ols6)
+ols7<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5+GDP_d6,data=mydata)
+summary(ols7)
+ols8<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4+GDP_d5,data=mydata)
+summary(ols8)
+ols9<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3+GDP_d4,data=mydata)
+summary(ols9)
+ols10<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2+GDP_d3,data=mydata)
+summary(ols10)
+ols11<-lm(GDP_d~GDP_l+GDP_d1+GDP_d2,data=mydata)
+summary(ols11)
+ols12<-lm(GDP_d~GDP_l+GDP_d1,data=mydata)
+summary(ols12)
+```
+GTS select lag of 1 at 0.01 level of significant
+```{r}
+mydata$Gap_l<-lag(mydata$Gap,1)
+Gapp<-diff(mydata$Gap)
+Gapp<-c(rep(NA,1),Gapp)
+mydata["Gapp"]<-Gapp
+mydata$Gapp_1<-lag(mydata$Gapp,1)
+mydata$Gapp_2<-lag(mydata$Gapp,2)
+mydata$Gapp_3<-lag(mydata$Gapp,3)
+mydata$Gapp_4<-lag(mydata$Gapp,4)
+mydata$Gapp_5<-lag(mydata$Gapp,5)
+mydata$Gapp_6<-lag(mydata$Gapp,6)
+mydata$Gapp_7<-lag(mydata$Gapp,7)
+mydata$Gapp_8<-lag(mydata$Gapp,8)
+mydata$Gapp_9<-lag(mydata$Gapp,9)
+mydata$Gapp_10<-lag(mydata$Gapp,10)
+mydata$Gapp_11<-lag(mydata$Gapp,11)
+mydata$Gapp_12<-lag(mydata$Gapp,12)
+lls1<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7+Gapp_8+Gapp_9+Gapp_10+Gapp_11+Gapp_12,data=mydata)
+summary(lls1)
+lls2<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7+Gapp_8+Gapp_9+Gapp_10+Gapp_11,data=mydata)
+summary(lls2)
+lls3<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7+Gapp_8+Gapp_9+Gapp_10,data=mydata)
+summary(lls3)
+lls4<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7+Gapp_8+Gapp_9,data=mydata)
+summary(lls4)
+lls5<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7+Gapp_8,data=mydata)
+summary(lls5)
+lls6<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6+Gapp_7,data=mydata)
+summary(lls6)
+lls7<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5+Gapp_6,data=mydata)
+summary(lls7)
+lls8<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4+Gapp_5,data=mydata)
+summary(lls8)
+lls9<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3+Gapp_4,data=mydata)
+summary(lls9)
+lls10<-lm(Gapp~Gap_l+Gapp_1+Gapp_2+Gapp_3,data=mydata)
+summary(lls10)
+lls11<-lm(Gapp~Gap_l+Gapp_1+Gapp_2,data=mydata)
+summary(lls11)
+lls12<-lm(Gapp~Gap_l+Gapp_1,data=mydata)
+summary(lls12)
+```
+GTS selects lag 5 at 0.01 level of significant
+
+```{r}
+mydata$emp_l<-lag(mydata$emp,1)
+empp<-diff(mydata$emp)
+empp<-c(rep(NA,1),empp)
+mydata["empp"]<-empp
+mydata$empp_1<-lag(mydata$empp,1)
+mydata$empp_2<-lag(mydata$empp,2)
+mydata$empp_3<-lag(mydata$empp,3)
+mydata$empp_4<-lag(mydata$empp,4)
+mydata$empp_5<-lag(mydata$empp,5)
+mydata$empp_6<-lag(mydata$empp,6)
+mydata$empp_7<-lag(mydata$empp,7)
+mydata$empp_8<-lag(mydata$empp,8)
+mydata$empp_9<-lag(mydata$empp,9)
+mydata$empp_10<-lag(mydata$empp,10)
+mydata$empp_11<-lag(mydata$empp,11)
+mydata$empp_12<-lag(mydata$empp,12)
+linear1<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7+empp_8+empp_9+empp_10+empp_11+empp_12,data=mydata)
+summary(linear1)
+linear2<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7+empp_8+empp_9+empp_10+empp_11,data=mydata)
+summary(linear2)
+linear3<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7+empp_8+empp_9+empp_10,data=mydata)
+summary(linear3)
+linear4<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7+empp_8+empp_9,data=mydata)
+summary(linear4)
+linear5<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7+empp_8,data=mydata)
+summary(linear5)
+linear6<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6+empp_7,data=mydata)
+summary(linear6)
+linear7<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5+empp_6,data=mydata)
+summary(linear7)
+linear8<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4+empp_5,data=mydata)
+summary(linear8)
+linear9<-lm(empp~emp_l+empp_1+empp_2+empp_3+empp_4,data=mydata)
+summary(linear9)
+linear10<-lm(empp~emp_l+empp_1+empp_2+empp_3,data=mydata)
+summary(linear10)
+linear11<-lm(empp~emp_l+empp_1+empp_2,data=mydata)
+summary(linear11)
+linear12<-lm(empp~emp_l+empp_1,data=mydata)
+summary(linear12)
+```
+GTS select lag select 12 at 0.05 level of significant
+
+To formally test whether the data is stationary, I perform a Dickey-fuller test.The null hypothesis of this test is that a unit root is present in an autoregressive model .lag selected by GTS was used.
+Dicker fuller test predict shows GDP and female employment rate  have   unit root at p value greater than 0.05 level of significant while Gap is stationary(p value less than 0.05).But the plot shows that Gender gap as a trend, so their is probability of deterministic trend in Gap.
+
+```{r}
+library(tseries)
+adf.test(mydata$GDP,k=1)
+adf.test(mydata$Gap,k=5)
+adf.test(mydata$emp,k=12)
+```
+#data transformation
+Since dickey fuller test predicts that GDP and employment rate as unit root,The data need to be transformed to see if it will be stationary.Taking log of GDP and differencing the variable becomes stationary but employment is not.Employment rate is stationary at lag of 1 without taking the difference.
+```{r}
+myData<- read.csv("gdp.csv")
+Lgdp<-log(myData$gdp)
+Diff_LGDP<-diff(Lgdp)
+adf.test(Diff_LGDP,k=1)
+diff_emp<-diff(mydata$emp)
+adf.test(diff_emp,k=12)
+adf.test(mydata$emp,k=1)
+```
+#Fitting model
+Auto arima function is further used to check the properties of the variables and to predict the model to be used.This results shows the presence of deteministic trend in employment rate and gender pay gap
+```{r}
+auto.arima(mydata$GDP)
+auto.arima(mydata$Gap)
+auto.arima(mydata$emp)
+```
+#VAR model
+VAR model is used to check relationship of the variables and it assume all variable are endogenous..The characteristics of the data suit the use of Vector Auto Regressive (VAR) model in that  they .
+The two stationary data GDP growth and Gender pay gap are used for the first analysis.Female employment rate was excluded because using the optimum lag suggested by GTS it is not stationary.
+
+#optimal lag length
+VARselect function with lag maximum 12  was used to predict  the optimal lag length.All selection criteria choose lag of 1 to be optimal
+AIC(n)  HQ(n)  SC(n) FPE(n) 
+     1      1      1      1 
+```{r}
+mydata_b<-cbind(Diff_LGDP,mydata$Gap)
+lag<-VARselect(mydata_b,lag.max =12,type="both")
+lag
+```
+#Below is the VAR model output.
+```{r}
+model1=VAR(data.frame(Diff_LGDP,mydata$Gap),type="both",lag.max=1,ic="AIC")
+summary(model1)
+```
+#lag 2 was estimated for robustness check
+```{r}
+model2=VAR(data.frame(Diff_LGDP,mydata$Gap),type="both",lag.max=2,ic="AIC")
+summary(model2)
+```
+#chowtest and VAR model for the three variables
+At lag of 1 employment rate was stationary but not stationary for lag greater than 1.I used VAR model to also check the relationship between the three variable .
+Chow test to test for structural break.The test is used to check for unexpected shift in a series.The Null hypothesis is that there is no structural break.
+The chow test shows there is structural break at 4 different point interval with significant value less than 0.001. This explain why there is variation in predicting stationarity for employment rate at different point interval and  why the employment rate and GDP variables have unit root at lag greater than 1
+First I ran the VAR model for the entire period without including the break and later run a second estimte considering the break.Break point of 7 was used this is done by removing all observation before point 7.Which is from period 1977 to 2019
+```{r}
+sctest(mydata$Gap ~ 1,type = "Chow")
+strucchange::breakpoints(mydata$Gap ~ 1)
+sctest(mydata$GDP ~ 1, type = "Chow")
+strucchange::breakpoints(mydata$GDP ~ 1)
+sctest(mydata$emp ~ 1, type = "Chow")
+strucchange::breakpoints(mydata$emp ~ 1)
+```
+break at point 7,21,32,40 for gender pay gap
+break at point 8,17,27,34,43 for GDP
+break at point 7,18,28,43 for female employment rate
+```{r}
+mydata_bind<-cbind(Diff_LGDP,mydata$Gap,mydata$emp)
+lag<-VARselect(mydata_bind,lag.max =1,type="both")
+lag
+```
+
+
+```{r}
+model3=VAR(data.frame(Diff_LGDP,mydata$Gap,mydata$emp),type="both",lag.max=1,ic="AIC")
+summary(model3)
+```
+#Model for considering structural break,estimating from 1977 to 2019
+
+```{r}
+mydata["Diff_LGDP"]<-Diff_LGDP
+ts_GDP<-ts(data=mydata$Diff_LGDP, frequency=1, start =c(1977,1), end= c(2019, 1))
+ts_GAP<-ts(data=mydata$Gap, frequency=1, start =c(1977,1), end= c(2019, 1))
+ts_emp<-ts(data=mydata$emp, frequency=1, start =c(1977,1), end= c(2019, 1))
+mydata_bind<-cbind(ts_GDP,ts_GAP,ts_emp)
+model4=VAR(mydata_bind,type="both",lag.max=1,ic="AIC")
+summary(model4)
+```
+#impulse response fuction
+It is an important step in econometric analyses that employ vector autoregressive models.The purpose is to describe evolution of a models variables in reaction to shock in one or more variables.The black line is the impulse response function and the red line  are 95% confidence level. The blue line must be within the 95% confident interval.Model 3 was used for this analysis.
+Here by using false, the shock in the GDP growth rate does not affect the contemporaneous GDP growth rate  nor female employment and gap , but will in later periods.
+
+```{r}
+ir_1 <-  irf(model3, impulse = "Diff_LGDP", response= c("mydata.Gap"), h.ahead = 10, ortho = FALSE)
+ir_2 <-  irf(model3, impulse = "Diff_LGDP", response= c("Diff_LGDP"), h.ahead = 10, ortho = FALSE)
+ir_3 <-  irf(model3, impulse = "Diff_LGDP", response= c("mydata.emp"), h.ahead = 10, ortho = FALSE)
+
+```
+one standard deviation  at the start of the shock there is no effect 
+```{r}
+plot(ir_1)
+plot(ir_2)
+plot(ir_3)
+```
+```{r}
+forecasts<-predict(model3)
+plot(forecasts)
+```
+
+
+VECM estimate, this was only done for robustness check.At first lag selection using GTS the lag recommended shows that two of the data  has unit root.Cointegration test is done to check if they are cointegrated.
+This analyses is for comparisom
+First variable are created for the analysis
+```{r}
+GDP_vecm<- mydata$GDP
+Emp_vecm<- mydata$emp
+Gap_vecm<- mydata$Gap
+
+mydata_vecm <- data.frame(GDP_vecm, Emp_vecm, Gap_vecm)
+lagselect_vecm <- VARselect(mydata_vecm , lag.max = 11, type = "const")
+lagselect_vecm$selection
+```
+#cointegration test
+lag of 11 was selected because longer lag produces lots of NAs
+```{r}
+ctest <- ca.jo(mydata_vecm, type="trace", ecdet = "trend", K=11)
+summary(ctest)
+```
+ The result of the VECM could not be computed beacause I was not able to download package tsDyn.It shows lincense is needed for the package with the R version.
+```{r}
+mydata_var<- data.frame(mydata$GDP, mydata$Gap, mydata$emp)
+VECM_model <- VECM(mydata_var, 11, r = 1, estim="2OLS")
+summary(VECM_model)
+```
